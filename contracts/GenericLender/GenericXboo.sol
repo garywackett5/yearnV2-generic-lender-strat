@@ -14,23 +14,6 @@ import "@openzeppelin/contracts/math/Math.sol";
 
 import "./GenericLenderBase.sol";
 
-// did we ever use this???
-// interface ICurveFi {
-//     function exchange(
-//         int128 from,
-//         int128 to,
-//         uint256 _from_amount,
-//         uint256 _min_to_amount
-//     ) external;
-
-//     function exchange_underlying(
-//         int128 from,
-//         int128 to,
-//         uint256 _from_amount,
-//         uint256 _min_to_amount
-//     ) external;
-// }
-
 // boo:xboo ratios, enter = "Locks Boo and mints xBoo", leave = "Unlocks the staked + gained Boo, and burns xBoo"
 interface IXboo is IERC20 {
     function xBOOForBOO(uint256) external view returns (uint256);
@@ -113,10 +96,6 @@ contract GenericXboo is GenericLenderBase {
     // swap stuff
     address internal constant spookyFactory = 0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3;
     address internal constant spiritFactory = 0xEF45d134b73241eDa7703fa787148D9C9F4950b0;
-    // address internal constant spookyRouter = 0xF491e7B69E4244ad4002BC14e878a34207E38c29;
-    // address internal constant spiritRouter = 0x16327E3FbDaCA3bcF7E38F5Af2599D2DDc33aE52;
-    // ICurveFi internal constant mimPool = ICurveFi(0x2dd7C9371965472E5A5fD28fbE165007c61439E1); // Curve's MIM-USDC-USDT pool
-    // ICurveFi internal constant daiPool = ICurveFi(0x27E611FD27b276ACbd5Ffd632E5eAEBEC9761E40); // Curve's USDC-DAI pool
 
     // tokens
     IERC20 internal constant wftm = IERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
@@ -136,24 +115,23 @@ contract GenericXboo is GenericLenderBase {
     string internal stratName; // we use this for our strategy's name on cloning
     bool internal isOriginal = true;
 
-    bool internal forceHarvestTriggerOnce; // only set this to true externally when we want to trigger our keepers to harvest for us
-    uint256 public minHarvestCredit; // if we hit this amount of credit, harvest the strategy
+    // bool internal forceHarvestTriggerOnce; // only set this to true externally when we want to trigger our keepers to harvest for us
+    // uint256 public minHarvestCredit; // if we hit this amount of credit, harvest the strategy
 
     uint256 private constant secondsPerYear = 31_536_000;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        address _vault,
-        // uint256 _pid,
+        address _strategy,
+        uint256 _pid,
         string memory _name,
         address _masterchef,
         address _emissionToken,
         address _swapFirstStep,
         bool _autoSell
-    // change this to GenericLenderBase ???
-    ) public BaseStrategy(_vault) {
-        // remove _pid?
+    ) public GenericLenderBase(_strategy, _name) {
+        // do I need _name in both ???
         _initializeStrat(_pid, _name, _masterchef, _emissionToken, _swapFirstStep, _autoSell);
     }
 
@@ -162,19 +140,19 @@ contract GenericXboo is GenericLenderBase {
     event Cloned(address indexed clone);
 
     // we use this to clone our original strategy to other vaults
-    // remove _pid?
     function cloneGenericXboo(
-        address _vault,
-        address _strategist,
-        address _rewards,
-        address _keeper,
+        address _strategy,
+        // address _strategist,
+        // address _rewards,
+        // address _keeper,
         uint256 _pid,
         string memory _name,
         address _masterchef,
         address _emissionToken,
         address _swapFirstStep,
         bool _autoSell
-    ) external returns (address newStrategy) {
+    ) external returns (address newStrategy) { // change to newPool ???
+        // not sure what all this stuff is
         require(isOriginal);
         // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         bytes20 addressBytes = bytes20(address(this));
@@ -187,29 +165,32 @@ contract GenericXboo is GenericLenderBase {
             newStrategy := create(0, clone_code, 0x37)
         }
 
+        // do we need to add this line ???
+        newPool = _clone(_strategy, _name);
         GenericXboo(newStrategy).initialize(
-            // remove _pid?
-            _vault,
-            _strategist,
-            _rewards,
-            _keeper,
+            _strategy, // remove this ???
+            // _strategist,
+            // _rewards,
+            // _keeper,
             _pid,
-            _name,
+            _name, // remove this ???
             _masterchef,
             _emissionToken,
             _swapFirstStep,
             _autoSell
         );
 
+        // this line isn't in the others ???
         emit Cloned(newStrategy);
     }
 
+    // i'm confused by what needs to be in all of these ???
     // this will only be called by the clone function above
     function initialize(
-        address _vault,
-        address _strategist,
-        address _rewards,
-        address _keeper,
+        address _strategy,
+        // address _strategist,
+        // address _rewards,
+        // address _keeper,
         uint256 _pid,
         string memory _name,
         address _masterchef,
@@ -217,11 +198,9 @@ contract GenericXboo is GenericLenderBase {
         address _swapFirstStep,
         bool _autoSell
     ) public {
-        _initialize(_vault, _strategist, _rewards, _keeper);
+        // _initialize(_strategy, _strategist, _rewards, _keeper);
         _initializeStrat(_pid, _name, _masterchef, _emissionToken, _swapFirstStep, _autoSell);
     }
-
-    // are we missing the _initialize function???
 
     // this is called by our original strategy, as well as any clones
     function _initializeStrat(
@@ -236,27 +215,27 @@ contract GenericXboo is GenericLenderBase {
         emissionToken = IERC20(_emissionToken);
         swapFirstStep = IERC20(_swapFirstStep);
         // initialize variables
-        maxReportDelay = 43200; // 1/2 day in seconds, if we hit this then harvestTrigger = True
-        healthCheck = address(0xf13Cd6887C62B5beC145e30c38c4938c5E627fe0); // Fantom common health check
+        // maxReportDelay = 43200; // 1/2 day in seconds, if we hit this then harvestTrigger = True
+        // healthCheck = address(0xf13Cd6887C62B5beC145e30c38c4938c5E627fe0); // Fantom common health check
 
+        // do we still need this ???
         // set our strategy's name
         stratName = _name;
 
         autoSell = _autoSell;
 
         // make sure that we used the correct pid
-        // remove this?
         pid = _pid;
 
         // turn off our credit harvest trigger to start with
-        minHarvestCredit = type(uint256).max;
+        // minHarvestCredit = type(uint256).max;
 
         // add approvals on all tokens DO WE NEED TO APPROVE EMISSION TOKEN?
         want.approve(address(xboo), type(uint256).max);
         xboo.approve(address(masterchef), type(uint256).max);
     }
 
-    /* ========== VIEW FUNCTIONS ========== */
+    /* ========== FUNCTIONS ========== */
 
     function name() external view override returns (string memory) {
         return stratName;
@@ -296,13 +275,14 @@ contract GenericXboo is GenericLenderBase {
 
     // calculate current reward apr
     function _apr() internal view returns (uint256) {
-        return aprAfterDeposit(0);
+        return _aprAfterDeposit(0);
     }
 
-    // need to add pid as an input?
     function aprAfterDeposit(uint256 amount) external view override returns (uint256) {
-        // do I use xbooInMasterchef anywhere??? Can't think why I would need to know that for this function???
-        // (uint256 xbooInMasterchef, ) = masterchef.userInfo(pid, address(this));
+        return _aprAfterDeposit(amount);
+    }
+
+    function _aprAfterDeposit(uint256 amount) internal view returns (uint256) {
         (
             address one,
             uint256 rewardsEachSecond,
@@ -325,141 +305,6 @@ contract GenericXboo is GenericLenderBase {
         return xbooEachYear.mul(1e18).div(newTotalXbooInPool);
     }
 
-    // not sure why we would need this ???
-    function weightedApr() external view override returns (uint256) {
-        uint256 a = _apr();
-        return a.mul(_nav());
-    }
-
-    function withdraw(uint256 amount) external override management returns (uint256) {
-        return _withdraw(amount);
-    }
-
-    // Only do this if absolutely necessary; as assets will be withdrawn but rewards won't be claimed.
-    function emergencyWithdraw() external onlyEmergencyAuthorized {
-        masterchef.emergencyWithdraw(pid);
-
-        // do i need to convert xboo to boo and then transfer to governance or not?
-        // didn't have this in original xBOO HEC strat but it's there in other gen lenders
-        // want.safeTransfer(vault.governance(), want.balanceOf(address(this)));
-    }
-
-    // withdraw an amount including any want balance
-    function _withdraw(uint256 amount) internal returns (uint256) {
-        // claim our emissionToken rewards
-        _claimRewards();
-
-        // if we have emissionToken to sell, then sell all of it
-         uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
-        if (emissionTokenBalance > 0) {
-            // sell our emissionToken
-            _sell(emissionTokenBalance);
-        }
-
-        uint256 balanceOfBoo = want.balanceOf(address(this));
-        // if we need more boo than is already loose in the contract
-        if (balanceOfBoo < amount) {
-            // boo needed beyond any boo that is already loose in the contract
-            uint256 amountToFree = amount.sub(balanceOfBoo);
-            // converts this amount into xboo
-            uint256 amountToFreeInXboo = xboo.BOOForxBOO(amountToFree);
-            //any xboo that is already loose in the contract
-            uint256 balanceOfXboo = xboo.balanceOf(address(this));
-            // if we need more xboo than is already loose in the contract
-            if (balanceOfXboo < amountToFreeInXboo) {
-                // new amount of xboo needed after subtracting any xboo that is already loose in the contract
-                uint256 newAmountToFreeInXboo = amountToFreeInXboo.sub(balanceOfXboo);
-
-                (uint256 deposited, ) =
-                    ChefLike(masterchef).userInfo(pid, address(this));
-                // if xboo deposited in masterchef is less than what we want, deposited becomes what we want (all)
-                if (deposited < newAmountToFreeInXboo) {
-                    newAmountToFreeInXboo = deposited;
-                }
-                // stops us trying to withdraw if xboo deposited is zero
-                if (deposited > 0) {
-                    ChefLike(masterchef).withdraw(pid, newAmountToFreeInXboo);
-                    // updating balanceOfXboo in preparation for when we leave xboo
-                    balanceOfXboo = xboo.balanceOf(address(this));
-                }
-            }
-            // leave = "Unlocks the staked Boo + gained Boo (which should be zero?), and burns xBoo"
-            // the lowest of these two options beause balanceOfXboo might be more than we need
-            xboo.leave(Math.min(amountToFreeInXboo, balanceOfXboo));
-
-            // this address' balance of boo
-            _liquidatedAmount = want.balanceOf(address(this));
-        } else {
-            _liquidatedAmount = amount;
-        }
-        // NEW LINE
-        want.safeTransfer(address(strategy), _liquidatedAmount);
-    }
-
-    function deposit() external override management {
-        // send all of our want tokens to be deposited
-        uint256 balance = balanceOfWant();
-        // stake only if we have something to stake
-        if (balance > 0) {
-            // deposit our boo into xboo
-            xboo.enter(balance);
-            // deposit xboo into masterchef
-            masterchef.deposit(pid, xboo.balanceOf(address(this)));
-        }
-    }
-
-    function withdrawAll() external override management returns (bool) {
-        uint256 invested = _nav();
-        uint256 returned = _withdraw(invested);
-        return returned >= invested;
-    }
-
-    // not sure what to do with this - need to replace cToken with something? what is our equivalent?
-    function hasAssets() external view override returns (bool) {
-        return cToken.balanceOf(address(this)) > dustThreshold;
-    }
-
-    // and this one is slightly different
-    function hasAssets() external view override returns (bool) {
-        //return cToken.balanceOf(address(this)) > 0;
-        return cToken.balanceOf(address(this)) > 0 || want.balanceOf(address(this)) > 0;
-    }
-
-    // do we need this?
-    function protectedTokens()
-        internal
-        view
-        override
-        returns (address[] memory)
-    {}
-
-    // do we need this?
-    function ethToWant(uint256 _amtInWei)
-        public
-        view
-        override
-        returns (uint256)
-    {}
-
-
-
-
-
-
-
-
-
-
-
-
-    /* ========== MUTATIVE FUNCTIONS ========== */ 
-
-    
-
-    
-
-    
-
     struct SellRoute {
         address pair;
         address input;
@@ -467,9 +312,7 @@ contract GenericXboo is GenericLenderBase {
         address to;
     }
 
-    // sell from reward token to want
-    // this should be a view function, right ???
-    function quoteEmissionToBoo(uint256 _amount) internal returns (uint256) {
+    function quoteEmissionToBoo(uint256 _amount) internal view returns (uint256) {
         //we do all our sells in one go in a chain between pairs
         //inialise to 3 even if we use less to save on gas
         SellRoute[] memory sellRoute = new SellRoute[](3);
@@ -536,7 +379,7 @@ contract GenericXboo is GenericLenderBase {
         SellRoute[] memory sell,
         uint256 id,
         uint256 amountIn
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         for (uint256 i; i < id + 1; i++) {
             (address token0, ) = _sortTokens(sell[i].input, sell[i].output);
             IUniswapV2Pair pair = IUniswapV2Pair(sell[i].pair);
@@ -550,8 +393,8 @@ contract GenericXboo is GenericLenderBase {
         return amountIn;
     }
 
-    //following two functions are taken from uniswap library
-    //https://github.com/Uniswap/v2-periphery/blob/master/contracts/libraries/UniswapV2Library.sol
+    // following two functions are taken from uniswap library
+    // https://github.com/Uniswap/v2-periphery/blob/master/contracts/libraries/UniswapV2Library.sol
     function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     }
@@ -569,54 +412,88 @@ contract GenericXboo is GenericLenderBase {
         amountOut = numerator.div(denominator);
     }
 
-    //adjust dust threshold
-    function setDustThreshold(uint256 amount) external management {
-        dustThreshold = amount;
+    function weightedApr() external view override returns (uint256) {
+        uint256 a = _apr();
+        return a.mul(_nav());
     }
 
-     
+    function withdraw(uint256 amount) external override management returns (uint256) {
+        return _withdraw(amount);
+    }
 
-    
+    // Only do this if absolutely necessary; as assets will be withdrawn but rewards won't be claimed.
+    function emergencyWithdraw() external override management {
+        masterchef.emergencyWithdraw(pid);
 
-    
+        // do i need to convert xboo to boo and then transfer to governance or not?
 
+        // didn't have this in original xBOO HEC strat but it's there in other gen lenders
+        want.safeTransfer(vault.governance(), balanceOfWant());
+    }
 
+    // withdraw an amount including any want balance
+    function _withdraw(uint256 amount) internal returns (uint256) {
+        // claim our emissionToken rewards
+        _claimRewards();
 
+        // if we have emissionToken to sell, then sell all of it
+         uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
+        if (emissionTokenBalance > 0) {
+            // sell our emissionToken
+            _sell(emissionTokenBalance);
+        }
 
+        uint256 _liquidatedAmount;
 
+        uint256 balanceOfBoo = balanceOfWant();
+        // if we need more boo than is already loose in the contract
+        if (balanceOfBoo < amount) {
+            // boo needed beyond any boo that is already loose in the contract
+            uint256 amountToFree = amount.sub(balanceOfBoo);
+            // converts this amount into xboo
+            uint256 amountToFreeInXboo = xboo.BOOForxBOO(amountToFree);
+            //any xboo that is already loose in the contract
+            uint256 balanceOfXboo = xboo.balanceOf(address(this));
+            // if we need more xboo than is already loose in the contract
+            if (balanceOfXboo < amountToFreeInXboo) {
+                // new amount of xboo needed after subtracting any xboo that is already loose in the contract
+                uint256 newAmountToFreeInXboo = amountToFreeInXboo.sub(balanceOfXboo);
 
+                (uint256 deposited, ) =
+                    ChefLike(masterchef).userInfo(pid, address(this));
+                // if xboo deposited in masterchef is less than what we want, deposited becomes what we want (all)
+                if (deposited < newAmountToFreeInXboo) {
+                    newAmountToFreeInXboo = deposited;
+                }
+                // stops us trying to withdraw if xboo deposited is zero
+                if (deposited > 0) {
+                    ChefLike(masterchef).withdraw(pid, newAmountToFreeInXboo);
+                    // updating balanceOfXboo in preparation for when we leave xboo
+                    balanceOfXboo = xboo.balanceOf(address(this));
+                }
+            }
+            // leave = "Unlocks the staked Boo + gained Boo (which should be zero?), and burns xBoo"
+            // the lowest of these two options beause balanceOfXboo might be more than we need
+            xboo.leave(Math.min(amountToFreeInXboo, balanceOfXboo));
 
+            
+            // this address' balance of boo - should it be balanceOfWant() ???
+            _liquidatedAmount = want.balanceOf(address(this));
+        } else {
+            // shouldn't this line also be want.balanceOf(address(this))? or actually balanceOfWant()
+            _liquidatedAmount = amount;
+        }
+        // NEW LINE
+        want.safeTransfer(address(strategy), _liquidatedAmount);
+    }
 
-
-
-
-
-
-
-
-
-
-    function claimRewards() external onlyEmergencyAuthorized {
+    function claimRewards() external management {
         _claimRewards(); 
     }
 
     function _claimRewards() internal {
         // claim our emission tokens
         masterchef.withdraw(pid, 0); 
-    }
-    
-
-    
-
-    function manualSell(uint256 _amount) external onlyEmergencyAuthorized {
-        _sell(_amount);
-    }
-
-    struct SellRoute{
-        address pair; 
-        address input; 
-        address output; 
-        address to;
     }
 
     // sell from reward token to want
@@ -734,38 +611,78 @@ contract GenericXboo is GenericLenderBase {
         }
     }
 
-    //following two functions are taken from uniswap library
-    //https://github.com/Uniswap/v2-periphery/blob/master/contracts/libraries/UniswapV2Library.sol
-    function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-        (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+    function deposit() external override management {
+        // send all of our want tokens to be deposited
+        uint256 balance = balanceOfWant();
+        // stake only if we have something to stake
+        if (balance > 0) {
+            // deposit our boo into xboo
+            xboo.enter(balance);
+            // deposit xboo into masterchef
+            masterchef.deposit(pid, xboo.balanceOf(address(this)));
+        }
     }
 
-    function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
-        require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
-        require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-        uint amountInWithFee = amountIn.mul(997);
-        uint numerator = amountInWithFee.mul(reserveOut);
-        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
-        amountOut = numerator.div(denominator);
+    function withdrawAll() external override management returns (bool) {
+        // claim our emissionToken rewards
+        _claimRewards();
+
+        // if we have emissionToken to sell, then sell all of it
+         uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
+        if (emissionTokenBalance > 0) {
+            // sell our emissionToken
+            _sell(emissionTokenBalance);
+        }
+
+        uint256 stakedXboo = balanceOfStaked()
+        if (stakedXboo > 0) {
+            ChefLike(masterchef).withdraw(pid, stakedXboo);
+            // updating balanceOfXboo in preparation for when we leave xboo
+        }
+
+        uint256 balanceOfXboo = xboo.balanceOf(address(this));
+        xboo.leave(balanceOfXboo);
+        uint256 balanceOfBoo = balanceOfWant();
+        want.safeTransfer(address(strategy), balanceOfBoo);
+        
+        // not sure how to finish this function ???
+        
+        // uint256 invested = _nav();
+        // uint256 returned = _withdraw(invested);
+        // return returned >= invested;
     }
 
     
+    function hasAssets() external view override returns (bool) {
+        return _nav() > dust;
+    }
 
+    function manualSell(uint256 _amount) external management {
+        _sell(_amount);
+    }
 
+    // do we need this? if so, what should it contain?
+    function protectedTokens()
+        internal
+        view
+        override
+        returns (address[] memory)
+    {}
 
-
-
-
-
-
-
+    // do we need this?
+    // function ethToWant(uint256 _amtInWei)
+    //     public
+    //     view
+    //     override
+    //     returns (uint256)
+    // {}
 
 /* ========== SETTERS ========== */
 
     // autosell if pools are liquid enough
     function setAutoSell(bool _autoSell)
         external
-        onlyEmergencyAuthorized
+        management
     {
         autoSell = _autoSell;
     }
@@ -773,21 +690,23 @@ contract GenericXboo is GenericLenderBase {
     // set a max sell for illiquid pools
     function setMaxSell(uint256 _maxSell)
         external
-        onlyEmergencyAuthorized
+        management
     {
         maxSell = _maxSell;
     }
 
+    // set to use spirit instead of spooky
     function setUseSpiritOne(bool _useSpirit)
         external
-        onlyEmergencyAuthorized
+        management
     {
         useSpiritPartOne = _useSpirit;
     }
 
+    // set to use spirit instead of spooky
     function setUseSpiritTwo(bool _useSpirit)
         external
-        onlyEmergencyAuthorized
+        management
     {
         useSpiritPartTwo = _useSpirit;
     }
@@ -795,7 +714,7 @@ contract GenericXboo is GenericLenderBase {
     // set a max sell for illiquid pools
     function setMaxSell(uint256 _maxSell)
         external
-        onlyEmergencyAuthorized
+        management
     {
         maxSell = _maxSell;
     }
