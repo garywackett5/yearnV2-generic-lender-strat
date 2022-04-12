@@ -66,6 +66,17 @@ def kae_swapFirstStep(wftm):
     yield wftm
 
 @pytest.fixture(scope="module")
+def bftm():
+    yield Contract("0x7381eD41F6dE418DdE5e84B55590422a57917886")
+
+@pytest.fixture(scope="module")
+def bftm_pid():
+    yield 32
+@pytest.fixture(scope="module")
+def bftm_swapFirstStep(wftm):
+    yield wftm
+
+@pytest.fixture(scope="module")
 def mst():
     yield Contract("0x152888854378201e173490956085c711f1DeD565")
 
@@ -148,6 +159,9 @@ def strategy(
     mst_pid,
     mst,
     mst_swapFirstStep,
+    bftm_pid,
+    bftm,
+    bftm_swapFirstStep,
     masterchef
 ):
     strategy = strategist.deploy(Strategy, vault)
@@ -158,9 +172,13 @@ def strategy(
     kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
     mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
 
+    t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
+    bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
+
 
     
     strategy.addLender(kaePlugin, {"from": gov})
     strategy.addLender(mstPlugin, {"from": gov})
-    assert strategy.numLenders() == 2
+    strategy.addLender(bftmPlugin, {"from": gov})
+    assert strategy.numLenders() == 3
     yield strategy

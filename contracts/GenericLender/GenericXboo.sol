@@ -134,9 +134,7 @@ contract GenericXboo is GenericLenderBase {
         _initializeStrat(_pid, _masterchef, _emissionToken, _swapFirstStep, _autoSell);
     }
 
-    /* ========== CLONING ========== */
 
-    event Cloned(address indexed clone);
 
     // we use this to clone our original strategy to other vaults
     function cloneGenericXboo(
@@ -174,7 +172,7 @@ contract GenericXboo is GenericLenderBase {
         bool _autoSell
     ) public {
         // _initialize(_strategy, _strategist, _rewards, _keeper);
-        require(address(_emissionToken) == address(0), "already initialized");
+        require(address(emissionToken) == address(0), "already initialized");
         _initializeStrat(_pid, _masterchef, _emissionToken, _swapFirstStep, _autoSell);
     }
 

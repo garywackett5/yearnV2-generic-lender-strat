@@ -162,7 +162,7 @@ def test_debt_increment_weth(
             f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)} APR: {form.format(j[2]/1e18)}"
         )
     startingBalance = vault.totalAssets()
-    for i in range(10):
+    for i in range(20):
         firstDeposit = 3000 * 1e18
 
         vault.deposit(firstDeposit, {"from": whale})
@@ -176,3 +176,9 @@ def test_debt_increment_weth(
             print(
                 f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)}, APR: {form.format(j[2]/1e18)}"
             )
+
+    vault.updateStrategyDebtRatio(strategy, 0, {'from': gov})
+        
+    t1 = strategy.harvest({"from": strategist})
+    print(t1.events["Harvested"])
+    vault.strategies(strategy).dict()["totalDebt"] < 10
