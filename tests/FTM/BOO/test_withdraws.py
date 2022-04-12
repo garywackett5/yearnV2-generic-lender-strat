@@ -104,3 +104,84 @@ def test_withdrawals_to_take_profit(
     vBefore = vault.balanceOf(strategist)
     vault.transferFrom(strategy, strategist, vBal, {"from": strategist})
     assert vault.balanceOf(strategist) - vBefore > 0
+
+
+def test_emergency_withdraw(
+    wftm,
+    boo,
+    chain,
+    whale,
+    vault,
+    strategy,
+    GenericXboo,
+    accounts,
+    interface,
+    amount, 
+    fn_isolation,
+):
+    strategist = accounts.at(strategy.strategist(), force=True)
+    gov = accounts.at(vault.governance(), force=True)
+    currency = boo
+
+    starting_balance = currency.balanceOf(strategist)
+
+    currency.approve(vault, 2 ** 256 - 1, {"from": whale})
+    currency.approve(vault, 2 ** 256 - 1, {"from": strategist})
+
+    deposit_limit = 10_000
+    vault.addStrategy(strategy, deposit_limit, 0, 2 ** 256 - 1, 1000, {"from": gov})
+
+    whale_deposit = amount
+    vault.deposit(whale_deposit, {"from": whale})
+    chain.sleep(10)
+    chain.mine(1)
+    strategy.setWithdrawalThreshold(0, {"from": gov})
+
+    print(whale_deposit / 1e18)
+    status = strategy.lendStatuses()
+    form = "{:.2%}"
+    formS = "{:,.0f}"
+    for j in status:
+        print(
+            f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)} APR: {form.format(j[2]/1e18)}"
+        )
+
+
+    strategy.harvest({"from": strategist})
+
+    status = strategy.lendStatuses()
+    form = "{:.2%}"
+    formS = "{:,.0f}"
+    for j in status:
+        print(
+            f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)} APR: {form.format(j[2]/1e18)}"
+        )
+    startingBalance = vault.totalAssets()
+    for i in range(3):
+
+        waitBlock = 25
+        # print(f'\n----wait {waitBlock} blocks----')
+        chain.mine(waitBlock)
+        chain.sleep(waitBlock)
+        # print(f'\n----harvest----')
+        for j in range(strategy.numLenders()):
+            lender = GenericXboo.at(strategy.lenders(j))
+            navBefore = lender.nav()
+            if navBefore == 0:
+                continue
+            toRemove = lender
+        strategy.safeRemoveLender(toRemove, {'from': gov})
+            
+
+        
+        status = strategy.lendStatuses()
+        form = "{:.2%}"
+        formS = "{:,.0f}"
+        for j in status:
+            print(
+                f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)} APR: {form.format(j[2]/1e18)}"
+            )
+    
+    vault.withdraw(vault.balanceOf(whale), {"from": whale})
+    assert vault.balanceOf(whale) == 0
+    

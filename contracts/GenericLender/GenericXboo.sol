@@ -623,11 +623,9 @@ contract GenericXboo is GenericLenderBase {
             // sell our emissionToken
             _sell(emissionTokenBalance);
         }
-
-        uint256 stakedXboo = balanceOfStaked();
+        (uint256 stakedXboo, ) = masterchef.userInfo(pid, address(this));
         if (stakedXboo > 0) {
             ChefLike(masterchef).withdraw(pid, stakedXboo);
-            // updating balanceOfXboo in preparation for when we leave xboo
         }
 
         uint256 balanceXboo = balanceOfXboo();
