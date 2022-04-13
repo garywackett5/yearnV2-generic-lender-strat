@@ -427,7 +427,7 @@ contract GenericXboo is GenericLenderBase {
 
         // if we have emissionToken to sell, then sell all of it
          uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
-        if (emissionTokenBalance > 0) {
+        if (emissionTokenBalance > 0 && autoSell)) {
             // sell our emissionToken
             _sell(emissionTokenBalance);
         }
@@ -547,8 +547,6 @@ contract GenericXboo is GenericLenderBase {
                 );
 
             if (address(want) == address(wftm)) {
-                //end. final to is always us. second array
-                sellRoute[id].to = address(this);
 
                 //end with only one step
                 _uniswap_sell_with_fee(sellRoute, id);
@@ -619,7 +617,7 @@ contract GenericXboo is GenericLenderBase {
 
         // if we have emissionToken to sell, then sell all of it
          uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
-        if (emissionTokenBalance > 0) {
+        if (emissionTokenBalance > 0 && autoSell)) {
             // sell our emissionToken
             _sell(emissionTokenBalance);
         }
