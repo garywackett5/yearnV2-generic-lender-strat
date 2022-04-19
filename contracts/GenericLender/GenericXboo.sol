@@ -427,7 +427,7 @@ contract GenericXboo is GenericLenderBase {
 
         // if we have emissionToken to sell, then sell all of it
          uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
-        if (emissionTokenBalance > 0 && autoSell)) {
+        if (emissionTokenBalance > 0 && autoSell) {
             // sell our emissionToken
             _sell(emissionTokenBalance);
         }
@@ -617,7 +617,7 @@ contract GenericXboo is GenericLenderBase {
 
         // if we have emissionToken to sell, then sell all of it
          uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
-        if (emissionTokenBalance > 0 && autoSell)) {
+        if (emissionTokenBalance > 0 && autoSell) {
             // sell our emissionToken
             _sell(emissionTokenBalance);
         }
