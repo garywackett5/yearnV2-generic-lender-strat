@@ -102,21 +102,16 @@ contract GenericXboo is GenericLenderBase {
     IERC20 internal constant usdc = IERC20(0x04068DA6C83AFCFA0e13ba15A6696662335D5B75);
     IERC20 internal constant boo = IERC20(0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE);
     IXboo internal constant xboo = IXboo(0xa48d959AE2E88f1dAA7D5F611E01908106dE7598);
-    // IERC20 internal constant hec = IERC20(0x5C4FDfc5233f935f20D2aDbA572F770c2E377Ab0);
 
     bool public autoSell;
-    uint256 public maxSell; //set to zero for unlimited
+    uint256 public maxSell; // set to zero for unlimited
 
     bool public useSpiritPartOne;
     bool public useSpiritPartTwo;
 
-    uint256 public pid; // the pool ID we are staking for (31 = RING) the latest pid
+    uint256 public pid; // the pool ID we are staking for
 
     string internal stratName; // we use this for our strategy's name on cloning
-    bool internal isOriginal = true;
-
-    // bool internal forceHarvestTriggerOnce; // only set this to true externally when we want to trigger our keepers to harvest for us
-    // uint256 public minHarvestCredit; // if we hit this amount of credit, harvest the strategy
 
     uint256 private constant secondsPerYear = 31_536_000;
 
@@ -139,9 +134,6 @@ contract GenericXboo is GenericLenderBase {
     // we use this to clone our original strategy to other vaults
     function cloneGenericXboo(
         address _strategy,
-        // address _strategist,
-        // address _rewards,
-        // address _keeper,
         uint256 _pid,
         string memory _name,
         address _masterchef,
@@ -159,12 +151,8 @@ contract GenericXboo is GenericLenderBase {
         );
     }
 
-    // i'm confused by what needs to be in all of these ???
     // this will only be called by the clone function above
     function initialize(
-        // address _strategist,
-        // address _rewards,
-        // address _keeper,
         uint256 _pid,
         address _masterchef,
         address _emissionToken,
@@ -187,9 +175,6 @@ contract GenericXboo is GenericLenderBase {
         masterchef = ChefLike(_masterchef);
         emissionToken = IERC20(_emissionToken);
         swapFirstStep = IERC20(_swapFirstStep);
-        // initialize variables
-        // maxReportDelay = 43200; // 1/2 day in seconds, if we hit this then harvestTrigger = True
-        // healthCheck = address(0xf13Cd6887C62B5beC145e30c38c4938c5E627fe0); // Fantom common health check
 
         (
             address rewardsToken,
@@ -211,10 +196,7 @@ contract GenericXboo is GenericLenderBase {
         // make sure that we used the correct pid
         pid = _pid;
 
-        // turn off our credit harvest trigger to start with
-        // minHarvestCredit = type(uint256).max;
-
-        // add approvals on all tokens DO WE NEED TO APPROVE EMISSION TOKEN?
+        // add approvals on all tokens
         want.approve(address(xboo), type(uint256).max);
         xboo.approve(address(masterchef), type(uint256).max);
     }
@@ -225,6 +207,7 @@ contract GenericXboo is GenericLenderBase {
     function balanceOfWant() public view returns (uint256) {
         return want.balanceOf(address(this));
     }
+
     function balanceOfXboo() public view returns (uint256) {
         return xboo.balanceOf(address(this));
     }
@@ -298,8 +281,8 @@ contract GenericXboo is GenericLenderBase {
     }
 
     function quoteEmissionToBoo(uint256 _amount) internal view returns (uint256) {
-        //we do all our sells in one go in a chain between pairs
-        //inialise to 3 even if we use less to save on gas
+        // we do all our sells in one go in a chain between pairs
+        // inialise to 3 even if we use less to save on gas
         SellRoute[] memory sellRoute = new SellRoute[](3);
 
         // 1! sell our emission token for swap first step token
@@ -312,41 +295,41 @@ contract GenericXboo is GenericLenderBase {
         // we deal directly with the pairs
         address pair = IFactory(factory).getPair(emissionTokenPath[0], emissionTokenPath[1]);
 
-        //first
+        // first
         sellRoute[id] = SellRoute(pair, emissionTokenPath[0], emissionTokenPath[1], address(0));
 
         if (address(want) == address(swapFirstStep)) {
-            //end with only one step
+            // end with only one step
             
             return _quoteUniswap(sellRoute, id, _amount);
         }
 
-        //if the second token isnt wftm we need to do an etra step
+        // if the second token isnt wftm we need to do an etra step
         if (address(swapFirstStep) != address(wftm)) {
             id = id + 1;
-            //! 2
+            // ! 2
             emissionTokenPath[0] = address(swapFirstStep);
             emissionTokenPath[1] = address(wftm);
 
             pair = IFactory(spookyFactory).getPair(emissionTokenPath[0], emissionTokenPath[1]);
 
-            //we set the to of the last step to
+            // we set the to of the last step to
             sellRoute[id - 1].to = pair;
 
             sellRoute[id] = SellRoute(pair, emissionTokenPath[0], emissionTokenPath[1], address(0));
 
             if (address(want) == address(wftm)) {
-                //end. final to is always us. second array
+                // end. final to is always us. second array
                 sellRoute[id].to = address(this);
 
-                //end with only one step
+                // end with only one step
                 
                 return _quoteUniswap(sellRoute, id, _amount);
             }
         }
 
         id = id + 1;
-        //final step is wftm to want
+        // final step is wftm to want
         emissionTokenPath[0] = address(wftm);
         emissionTokenPath[1] = address(want);
         factory = useSpiritPartTwo ? spiritFactory : spookyFactory;
@@ -356,7 +339,7 @@ contract GenericXboo is GenericLenderBase {
 
         sellRoute[id] = SellRoute(pair, emissionTokenPath[0], emissionTokenPath[1], address(this));
 
-        //id will be 0-1-2
+        // id will be 0-1-2
         return _quoteUniswap(sellRoute, id, _amount);
     }
 
@@ -441,7 +424,7 @@ contract GenericXboo is GenericLenderBase {
             uint256 amountToFree = amount.sub(balanceOfBoo);
             // converts this amount into xboo
             uint256 amountToFreeInXboo = xboo.BOOForxBOO(amountToFree);
-            //any xboo that is already loose in the contract
+            // any xboo that is already loose in the contract
             uint256 balanceXboo = balanceOfXboo();
             // if we need more xboo than is already loose in the contract
             if (balanceXboo < amountToFreeInXboo) {
@@ -492,8 +475,8 @@ contract GenericXboo is GenericLenderBase {
             _amount = Math.min(maxSell, _amount);
         }        
 
-        //we do all our sells in one go in a chain between pairs
-        //inialise to 3 even if we use less to save on gas
+        // we do all our sells in one go in a chain between pairs
+        // inialise to 3 even if we use less to save on gas
         SellRoute[] memory sellRoute = new SellRoute[](3);
 
         // 1! sell our emission token for swapfirststep token
@@ -503,13 +486,13 @@ contract GenericXboo is GenericLenderBase {
         uint256 id = 0;
 
         address factory = useSpiritPartOne? spiritFactory: spookyFactory;
-        //we deal directly with the pairs
+        // we deal directly with the pairs
         address pair = IFactory(factory).getPair(emissionTokenPath[0], emissionTokenPath[1]);
 
-        //start off by sending our emission token to the first pair. we only do this once
+        // start off by sending our emission token to the first pair. we only do this once
         emissionToken.safeTransfer(pair, _amount);
 
-        //first
+        // first
         sellRoute[id] =
                 SellRoute(
                     pair,
@@ -520,22 +503,22 @@ contract GenericXboo is GenericLenderBase {
 
         if (address(want) == address(swapFirstStep)) {
 
-            //end with only one step
+            // end with only one step
             _uniswap_sell_with_fee(sellRoute, id);
             return;
         }
 
-        //if the second token isnt ftm we need to do an etra step
+        // if the second token isnt ftm we need to do an etra step
         if(address(swapFirstStep) != address(wftm)){
             id = id+1;
-            //! 2
+            // ! 2
             emissionTokenPath[0] = address(swapFirstStep);
             emissionTokenPath[1] = address(wftm);
             
             pair = IFactory(spookyFactory).getPair(emissionTokenPath[0], emissionTokenPath[1]);
             
 
-            //we set the to of the last step to 
+            // we set the to of the last step to 
             sellRoute[id-1].to = pair;
 
             sellRoute[id] =
@@ -548,14 +531,14 @@ contract GenericXboo is GenericLenderBase {
 
             if (address(want) == address(wftm)) {
 
-                //end with only one step
+                // end with only one step
                 _uniswap_sell_with_fee(sellRoute, id);
                 return;
             }
         }
 
         id = id+1;
-        //final step is wftm to want
+        // final step is wftm to want
         emissionTokenPath[0] = address(wftm);
         emissionTokenPath[1] = address(want);
         factory = useSpiritPartTwo? spiritFactory: spookyFactory;
@@ -574,12 +557,12 @@ contract GenericXboo is GenericLenderBase {
                 );
 
 
-        //id will be 0-1-2
+        // id will be 0-1-2
         _uniswap_sell_with_fee(sellRoute, id);
     }
 
     function _uniswap_sell_with_fee(SellRoute[] memory sell, uint256 id) internal{
-        sell[id].to = address(this); //last one is always to us
+        sell[id].to = address(this); // last one is always to us
         for (uint i; i < id+1; i++) {
             
             (address token0,) = _sortTokens(sell[i].input, sell[i].output);
@@ -644,7 +627,6 @@ contract GenericXboo is GenericLenderBase {
         _sell(_amount);
     }
 
-    // do we need this? if so, what should it contain?
     function protectedTokens()
         internal
         view
@@ -686,6 +668,5 @@ contract GenericXboo is GenericLenderBase {
     {
         useSpiritPartTwo = _useSpirit;
     }
-
-    
+ 
 }

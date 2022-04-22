@@ -38,6 +38,8 @@ abstract contract GenericLenderBase is IGenericLender {
 
     event Cloned(address indexed clone);
 
+    bool public isOriginal = true;
+
     constructor(address _strategy, string memory _name) public {
         _initialize(_strategy, _name);
     }
@@ -59,6 +61,7 @@ abstract contract GenericLenderBase is IGenericLender {
     }
 
     function _clone(address _strategy, string memory _name) internal returns (address newLender) {
+        require(isOriginal, "!clone");
         // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         bytes20 addressBytes = bytes20(address(this));
 
