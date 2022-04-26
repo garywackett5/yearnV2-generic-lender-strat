@@ -1,10 +1,22 @@
 import pytest
 from brownie import Wei, config, Contract
+import requests
 # Snapshots the chain before each test and reverts after test completion.
 @pytest.fixture(autouse=True)
 def isolation(fn_isolation):
     pass
 
+# @pytest.fixture(scope="module", autouse=True)
+def tenderly_fork(web3):
+    fork_base_url = "https://simulate.yearn.network/fork"
+    payload = {"network_id": "250"}
+    resp = requests.post(fork_base_url, headers={}, json=payload)
+    fork_id = resp.json()["simulation_fork"]["id"]
+    fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
+    print(fork_rpc_url)
+    tenderly_provider = web3.HTTPProvider(fork_rpc_url, {"timeout": 600})
+    web3.provider = tenderly_provider
+    print(f"https://dashboard.tenderly.co/yearn/yearn-web/fork/{fork_id}")
 
 # this is the pool ID that we are staking for. 21, hec
 @pytest.fixture(scope="module")
@@ -137,6 +149,64 @@ def keeper(accounts):
     yield accounts[4]
 
 @pytest.fixture(scope="module")
+def live_vault(gov, accounts, Strategy, rewards, guardian, boo, pm):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = Vault.at('0x0fBbf9848D969776a5Eb842EdAfAf29ef4467698')
+    gov = accounts.at(vault.governance(), force=True)
+    old_strat = Strategy.at(vault.withdrawalQueue(0))
+    vault.updateStrategyDebtRatio(old_strat, 0, {'from': gov})
+    old_strat.harvest({'from': gov})
+
+    assert old_strat.estimatedTotalAssets() < 1e16
+
+    yield vault
+
+@pytest.fixture(scope="module")
+def live_strategy(
+    live_vault,
+    Strategy,
+    GenericXboo,
+    kae_pid,
+    kae,
+    kae_swapFirstStep,
+    mst_pid,
+    mst,
+    mst_swapFirstStep,
+    bftm_pid,
+    bftm,
+    bftm_swapFirstStep,
+    masterchef,
+    accounts
+):
+    strategy = Strategy.at('0x4CE40A36A018457F8E0AA7C4a12Cc7ebf228B20F')
+    
+
+    strategist = accounts.at(strategy.strategist(), force=True)
+    gov = accounts.at(live_vault.governance(), force=True)
+
+
+
+    # kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    lunaPlugin =  GenericXboo.at('0x7a1dE1a9ABF7Ff94E09d407E12fa70511443aFDF')
+    # mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
+    sdPlugin = GenericXboo.at('0x351E0449C24fA79CBd2A54B9fce52845A5c47276')
+
+    # t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
+    # bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
+    bftmPlugin = GenericXboo.at('0x545b2C68d246A6E103C1C184e2e663c726963157')
+
+
+    
+    strategy.addLender(lunaPlugin, {"from": gov})
+    strategy.addLender(sdPlugin, {"from": gov})
+    strategy.addLender(bftmPlugin, {"from": gov})
+    # assert strategy.numLenders() == 3
+    yield strategy
+    
+
+
+
+@pytest.fixture(scope="module")
 def vault(gov, rewards, guardian, boo, pm):
     Vault = pm(config["dependencies"][0]).Vault
     vault = Vault.deploy({"from": guardian})
@@ -166,7 +236,6 @@ def strategy(
 ):
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-
 
 
     kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
