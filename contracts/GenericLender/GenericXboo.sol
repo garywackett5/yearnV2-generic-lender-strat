@@ -457,6 +457,7 @@ contract GenericXboo is GenericLenderBase {
         }
         // NEW LINE
         want.safeTransfer(address(strategy), _liquidatedAmount);
+        return _liquidatedAmount;
     }
 
     function claimRewards() external management {
