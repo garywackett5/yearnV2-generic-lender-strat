@@ -73,8 +73,21 @@ def kae():
 @pytest.fixture(scope="module")
 def kae_pid():
     yield 28
+
 @pytest.fixture(scope="module")
 def kae_swapFirstStep(wftm):
+    yield wftm
+
+@pytest.fixture(scope="module")
+def luna():
+    yield Contract("0x593AE1d34c8BD7587C11D539E4F42BFf242c82Af")
+
+@pytest.fixture(scope="module")
+def luna_pid():
+    yield 33
+    
+@pytest.fixture(scope="module")
+def luna_swapFirstStep(wftm):
     yield wftm
 
 @pytest.fixture(scope="module")
@@ -84,6 +97,7 @@ def bftm():
 @pytest.fixture(scope="module")
 def bftm_pid():
     yield 32
+
 @pytest.fixture(scope="module")
 def bftm_swapFirstStep(wftm):
     yield wftm
@@ -95,22 +109,39 @@ def mst():
 @pytest.fixture(scope="module")
 def mst_pid():
     yield 26
+
 @pytest.fixture(scope="module")
 def mst_swapFirstStep(wftm):
     yield wftm
 
 @pytest.fixture(scope="module")
+def sd():
+    yield Contract("0x412a13C109aC30f0dB80AD3Bd1DeFd5D0A6c0Ac6")
+
+@pytest.fixture(scope="module")
+def sd_pid():
+    yield 34
+    
+@pytest.fixture(scope="module")
+def sd_swapFirstStep(usdc):
+    yield usdc
+
+@pytest.fixture(scope="module")
 def xboo():
     yield Contract("0xa48d959AE2E88f1dAA7D5F611E01908106dE7598")
+
 @pytest.fixture(scope="module")
 def masterchef():
     yield Contract("0x2352b745561e7e6FCD03c093cE7220e3e126ace0")
+
+@pytest.fixture(scope="module")
+def plugin():
+    yield Contract("0x545b2C68d246A6E103C1C184e2e663c726963157")
 
 # Define relevant tokens and contracts in this section
 @pytest.fixture(scope="module")
 def token(boo):
     yield boo
-
 
 @pytest.fixture(scope="module")
 def whale(accounts, token, amount, strategist):
@@ -118,7 +149,6 @@ def whale(accounts, token, amount, strategist):
     whale = accounts.at("0x5804F6C40f44cF7593F73cf3aa16F7037213A623", force=True)
     token.transfer(strategist, amount, {'from': whale})
     yield whale
-
 
 # this is the amount of funds we have our whale deposit. adjust this as needed based on their wallet balance
 @pytest.fixture(scope="module")
@@ -138,6 +168,7 @@ def guardian(accounts):
 @pytest.fixture(scope="module")
 def gov(accounts):
     yield accounts[5]
+
 @pytest.fixture(scope="module")
 def strategist(accounts):
     # YFI Whale, probably
@@ -166,12 +197,12 @@ def live_strategy(
     live_vault,
     Strategy,
     GenericXboo,
-    kae_pid,
-    kae,
-    kae_swapFirstStep,
-    mst_pid,
-    mst,
-    mst_swapFirstStep,
+    luna_pid,
+    luna,
+    luna_swapFirstStep,
+    sd_pid,
+    sd,
+    sd_swapFirstStep,
     bftm_pid,
     bftm,
     bftm_swapFirstStep,
@@ -223,12 +254,12 @@ def strategy(
     gov,
     Strategy,
     GenericXboo,
-    kae_pid,
-    kae,
-    kae_swapFirstStep,
-    mst_pid,
-    mst,
-    mst_swapFirstStep,
+    luna_pid,
+    luna,
+    luna_swapFirstStep,
+    sd_pid,
+    sd,
+    sd_swapFirstStep,
     bftm_pid,
     bftm,
     bftm_swapFirstStep,
@@ -238,16 +269,16 @@ def strategy(
     strategy.setKeeper(keeper)
 
 
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
-    mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
+    lunaPlugin = strategist.deploy(GenericXboo, strategy, luna_pid, "LunaXboo", masterchef, luna, luna_swapFirstStep, True)
+    sdPlugin = strategist.deploy(GenericXboo, strategy, sd_pid, "SdXboo", masterchef, sd, sd_swapFirstStep, True)
 
-    t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
+    t1 = sdPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
     bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
 
 
     
-    strategy.addLender(kaePlugin, {"from": gov})
-    strategy.addLender(mstPlugin, {"from": gov})
+    strategy.addLender(lunaPlugin, {"from": gov})
+    strategy.addLender(sdPlugin, {"from": gov})
     strategy.addLender(bftmPlugin, {"from": gov})
     assert strategy.numLenders() == 3
     yield strategy

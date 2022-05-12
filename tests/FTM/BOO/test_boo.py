@@ -75,9 +75,6 @@ def test_normal_activity(
             print("profit: ", navAfter-navBefore)
 
 
-
-
-        
         strategy.harvest({"from": strategist})
 
         # genericStateOfStrat(strategy, currency, vault)

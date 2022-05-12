@@ -67,7 +67,7 @@ def test_withdrawals_to_take_profit(
         vault.strategies(strategy).dict()["totalDebt"] < 10
         vault.updateStrategyDebtRatio(strategy, 10_000, {'from': gov})
         t2 = strategy.harvest({"from": strategist})
-        assert t2.events["Harvested"]["profit"] >0
+        assert t2.events["Harvested"]["profit"] > 0
 
         # genericStateOfStrat(strategy, currency, vault)
         # genericStateOfVault(vault, currency)
@@ -96,14 +96,29 @@ def test_withdrawals_to_take_profit(
                 f"Lender: {j[0]}, Deposits: {formS.format(j[1]/1e18)} APR: {form.format(j[2]/1e18)}"
             )
 
-    vault.withdraw(vault.balanceOf(whale), {"from": whale})
+    # whale withdraws and we check that whale receives correct amount
+    whaleBefore = boo.balanceOf(whale)
+    print(whaleBefore / 1e18)
+    print(vault.balanceOf(whale) / 1e18)
 
-    vBal = vault.balanceOf(strategy)
-    assert vBal > 0
+    whaleWithdrawal = vault.balanceOf(whale)
+    vault.withdraw(whaleWithdrawal, {"from": whale})
+
+    whaleAfter = boo.balanceOf(whale)
+    print(whaleAfter / 1e18)
+    print(vault.balanceOf(whale) / 1e18)
+
+    assert whaleAfter >= whaleBefore + whaleWithdrawal
+
     
-    vBefore = vault.balanceOf(strategist)
-    vault.transferFrom(strategy, strategist, vBal, {"from": strategist})
-    assert vault.balanceOf(strategist) - vBefore > 0
+    #vBal = vault.balanceOf(strategy)
+    #print(vBal / 1e18)
+    #assert vBal > 0
+    
+    #vBefore = vault.balanceOf(strategist)
+    #print(vBefore / 1e18)
+    #vault.transferFrom(strategy, strategist, vBal, {"from": strategist})
+    #assert vault.balanceOf(strategist) - vBefore > 0
 
 
 def test_emergency_withdraw(
@@ -184,4 +199,3 @@ def test_emergency_withdraw(
     
     vault.withdraw(vault.balanceOf(whale), {"from": whale})
     assert vault.balanceOf(whale) == 0
-    
