@@ -258,7 +258,7 @@ def live_strategy(
     strategy.addLender(xtarotPlugin, {"from": gov})
     # trategy.addLender(sdPlugin, {"from": gov})
     # strategy.addLender(bftmPlugin, {"from": gov})
-    assert strategy.numLenders() == 1
+    # assert strategy.numLenders() == 1
     yield strategy
     
 

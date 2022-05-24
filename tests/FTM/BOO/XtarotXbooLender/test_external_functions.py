@@ -5,12 +5,13 @@ import brownie
 # tests that cloneGenericXboo works
 def test_clone_generic_xboo(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     pm,
     guardian,
     boo,
@@ -32,8 +33,8 @@ def test_clone_generic_xboo(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
-    strategy.addLender(kaePlugin, {"from": gov})
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
     deposit_limit = 10_000
@@ -45,19 +46,6 @@ def test_clone_generic_xboo(
     chain.mine(1)
     strategy.setWithdrawalThreshold(0, {"from": gov})
     strategy.harvest({"from": strategist})
-
-    # clone the plugin
-    _strategy = strategy
-    _pid = 36
-    _name = "PgkXboo"
-    _masterchef = Contract("0x2352b745561e7e6FCD03c093cE7220e3e126ace0")
-    _emissionToken = Contract("0x188a168280589bC3E483d77aae6b4A1d26bD22dC")
-    _swapFirstStep = Contract("0x04068DA6C83AFCFA0e13ba15A6696662335D5B75")
-    _autoSell = True
-    t1 = kaePlugin.cloneGenericXboo(_strategy, _pid, _name, _masterchef, _emissionToken, _swapFirstStep, _autoSell, {"from": gov})
-    pgkPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
-    strategy.addLender(pgkPlugin, {"from": gov})
-
 
 # tests that withdraw can't be called by anyone but the strategy
 def test_withdraw(
@@ -85,12 +73,13 @@ def test_withdraw(
 def test_emergency_manual_withdraw(
     xboo,
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     pm,
     guardian,
     boo,
@@ -112,8 +101,8 @@ def test_emergency_manual_withdraw(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
-    strategy.addLender(kaePlugin, {"from": gov})
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
     deposit_limit = 10_000
@@ -130,12 +119,12 @@ def test_emergency_manual_withdraw(
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.emergencyManualWithdraw({'from': random_wallet})
+        xtarotPlugin.emergencyManualWithdraw({'from': random_wallet})
 
-    balance_before = xboo.balanceOf(kaePlugin)
+    balance_before = xboo.balanceOf(xtarotPlugin)
     print(balance_before / 1e18)
-    kaePlugin.emergencyManualWithdraw({'from': gov})
-    balance_after = xboo.balanceOf(kaePlugin)
+    xtarotPlugin.emergencyManualWithdraw({'from': gov})
+    balance_after = xboo.balanceOf(xtarotPlugin)
     print(balance_after / 1e18)
     assert balance_after > balance_before
 
@@ -144,12 +133,13 @@ def test_emergency_manual_withdraw(
 def test_emergency_withdraw(
     xboo,
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     pm,
     guardian,
     boo,
@@ -171,8 +161,8 @@ def test_emergency_withdraw(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
-    strategy.addLender(kaePlugin, {"from": gov})
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
     deposit_limit = 10_000
@@ -189,11 +179,11 @@ def test_emergency_withdraw(
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.emergencyWithdraw(100, {'from': random_wallet})
+        xtarotPlugin.emergencyWithdraw(100, {'from': random_wallet})
     
     balance_before = xboo.balanceOf(gov)
     print(balance_before / 1e18)
-    kaePlugin.emergencyWithdraw(100, {'from': gov})
+    xtarotPlugin.emergencyWithdraw(100, {'from': gov})
     balance_after = xboo.balanceOf(gov)
     print(balance_after / 1e18)
     assert balance_after > balance_before
@@ -203,102 +193,106 @@ def test_emergency_withdraw(
 def test_claim_rewards(
     vault,
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.claimRewards({'from': random_wallet})
+        xtarotPlugin.claimRewards({'from': random_wallet})
 
 
 # tests that deposit can't be called by anyone but the strategy
 def test_deposit(
     vault,
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.deposit({'from': random_wallet})
+        xtarotPlugin.deposit({'from': random_wallet})
 
 
 # tests that withdrawAll can't be called by anyone but the strategy
 def test_withdraw_all(
     vault,
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.withdrawAll({'from': random_wallet})
+        xtarotPlugin.withdrawAll({'from': random_wallet})
 
 
 # tests that manualSell can't be called by anyone but the strategy and then that it works when called by gov
 def test_manual_sell(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     boo,
     gov,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
     
     # our kae whale transfers KAE to the plugin to simulate claimed emission tokens
-    kaeWhale = accounts.at("0xeB8Ac7a87D22f541e6cf2E3dB0f36388e158F7Df", force=True)
-    kae.transfer(kaePlugin, 10, {"from": kaeWhale})
+    xtarotWhale = accounts.at("0x0ED650C3185eF33b6F61aD2fA7521A3602DF566c", force=True)
+    xtarot.transfer(xtarotPlugin, 10 * 1e18, {"from": xtarotWhale})
 
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.manualSell(10, {'from': random_wallet})
+        xtarotPlugin.manualSell(10 * 1e18, {'from': random_wallet})
     
-    kae_balance_before = kae.balanceOf(kaePlugin)
-    print("kae_balance_before", kae_balance_before / 1e18)
-    boo_balance_before = boo.balanceOf(kaePlugin)
+    xtarot_balance_before = xtarot.balanceOf(xtarotPlugin)
+    print("xtarot_balance_before", xtarot_balance_before / 1e18)
+    boo_balance_before = boo.balanceOf(xtarotPlugin)
     print("boo_balance_before", boo_balance_before / 1e18)
 
-    kaePlugin.manualSell(10, {'from': gov})
+    xtarotPlugin.manualSell(10 * 1e18, {'from': gov})
 
-    kae_balance_after = kae.balanceOf(kaePlugin)
-    print("kae_balance_after", kae_balance_after / 1e18)
-    boo_balance_after = boo.balanceOf(kaePlugin)
+    xtarot_balance_after = xtarot.balanceOf(xtarotPlugin)
+    print("xtarot_balance_after", xtarot_balance_after / 1e18)
+    boo_balance_after = boo.balanceOf(xtarotPlugin)
     print("boo_balance_after", boo_balance_after / 1e18)
 
     assert boo_balance_after > boo_balance_before
@@ -307,102 +301,106 @@ def test_manual_sell(
 # tests that setAutoSell can't be called by anyone but the strategy and then that it works when called by gov
 def test_set_auto_sell(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     gov,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.setAutoSell(False, {'from': random_wallet})
+        xtarotPlugin.setAutoSell(False, {'from': random_wallet})
     
     # Turn off autoSell
-    kaePlugin.setAutoSell(False, {'from': gov})
-    assert kaePlugin.autoSell() == False
+    xtarotPlugin.setAutoSell(False, {'from': gov})
+    assert xtarotPlugin.autoSell() == False
 
     # Turn on autoSell
-    kaePlugin.setAutoSell(True, {'from': gov})
-    assert kaePlugin.autoSell() == True
+    xtarotPlugin.setAutoSell(True, {'from': gov})
+    assert xtarotPlugin.autoSell() == True
 
 
 # tests that setMaxSell can't be called by anyone but the strategy and then that it works when called by gov
 def test_set_max_sell(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     gov,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.setMaxSell(100, {'from': random_wallet})
+        xtarotPlugin.setMaxSell(100, {'from': random_wallet})
     
     # Turn off autoSell
-    kaePlugin.setMaxSell(100, {'from': gov})
-    assert kaePlugin.maxSell() == 100
+    xtarotPlugin.setMaxSell(100, {'from': gov})
+    assert xtarotPlugin.maxSell() == 100
 
 
 # tests that setUseSpiritOne can't be called by anyone but the strategy and then that it works when called by gov
 def test_set_use_spirit_one(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     gov,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.setUseSpiritOne(True, {'from': random_wallet})
+        xtarotPlugin.setUseSpiritOne(True, {'from': random_wallet})
     
     # Turn off autoSell
-    kaePlugin.setUseSpiritOne(True, {'from': gov})
-    assert kaePlugin.useSpiritPartOne() == True
+    xtarotPlugin.setUseSpiritOne(True, {'from': gov})
+    assert xtarotPlugin.useSpiritPartOne() == True
 
     # Turn on autoSell
-    kaePlugin.setUseSpiritOne(False, {'from': gov})
-    assert kaePlugin.useSpiritPartOne() == False
+    xtarotPlugin.setUseSpiritOne(False, {'from': gov})
+    assert xtarotPlugin.useSpiritPartOne() == False
 
 
 # tests that setUseSpiritTwo can't be called by anyone but the strategy and then that it works when called by gov
 def test_set_use_spirit_two(
     accounts,
-    GenericXboo,
+    GenericXbooXtarot,
     strategy,
-    kae_pid,
+    xtarot_pid,
     masterchef,
-    kae,
-    kae_swapFirstStep,
+    xtarotRouter,
+    xtarot,
+    xtarot_swapFirstStep,
     gov,
 ):
     strategist = accounts[2]
-    kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
-        kaePlugin.setUseSpiritTwo(True, {'from': random_wallet})
+        xtarotPlugin.setUseSpiritTwo(True, {'from': random_wallet})
     
     # Turn off autoSell
-    kaePlugin.setUseSpiritTwo(True, {'from': gov})
-    assert kaePlugin.useSpiritPartTwo() == True
+    xtarotPlugin.setUseSpiritTwo(True, {'from': gov})
+    assert xtarotPlugin.useSpiritPartTwo() == True
 
     # Turn on autoSell
-    kaePlugin.setUseSpiritTwo(False, {'from': gov})
-    assert kaePlugin.useSpiritPartTwo() == False
+    xtarotPlugin.setUseSpiritTwo(False, {'from': gov})
+    assert xtarotPlugin.useSpiritPartTwo() == False

@@ -9,7 +9,7 @@ def test_normal_activity(
     whale,
     live_vault,
     live_strategy,
-    GenericXboo,
+    GenericXbooXtarot,
     accounts,
     interface,
     amount, 
@@ -56,7 +56,7 @@ def test_normal_activity(
         chain.sleep(waitBlock)
         # print(f'\n----harvest----')
         for j in range(strategy.numLenders()):
-            lender = GenericXboo.at(strategy.lenders(j))
+            lender = GenericXbooXtarot.at(strategy.lenders(j))
             navBefore = lender.nav()
             if navBefore == 0:
                 continue
