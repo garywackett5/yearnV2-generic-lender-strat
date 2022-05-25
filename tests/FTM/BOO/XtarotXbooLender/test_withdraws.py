@@ -185,7 +185,7 @@ def test_emergency_withdraw(
             if navBefore == 0:
                 continue
             toRemove = lender
-        strategy.safeRemoveLender(toRemove, {'from': gov})
+            strategy.safeRemoveLender(toRemove, {'from': gov})
             
 
         
