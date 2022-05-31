@@ -14,6 +14,7 @@ def test_normal_activity(
     interface,
     amount, 
     fn_isolation,
+    xtarot
 ):
     strategist = accounts.at(strategy.strategist(), force=True)
     gov = accounts.at(vault.governance(), force=True)
@@ -65,12 +66,12 @@ def test_normal_activity(
             navBefore = lender.nav()
             if navBefore == 0:
                 continue
-            emission = interface.ERC20(lender.emissionToken())
+            # emission = interface.ERC20(lender.emissionToken())
             lender.claimRewards({'from': strategist})
-            balanceOfEm = emission.balanceOf(lender)
+            balanceOfEm = xtarot.balanceOf(lender)
             assert balanceOfEm > 0
             lender.manualSell(balanceOfEm, {'from': strategist})
-            assert emission.balanceOf(lender) == 0
+            assert xtarot.balanceOf(lender) == 0
             navAfter = lender.nav()
             assert navAfter > navBefore
             print("profit: ", navAfter-navBefore)

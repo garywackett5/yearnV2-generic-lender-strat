@@ -33,7 +33,7 @@ def test_clone_generic_xboo(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
@@ -101,7 +101,7 @@ def test_emergency_manual_withdraw(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
@@ -161,7 +161,7 @@ def test_emergency_withdraw(
     strategist = accounts[2]
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     strategy.addLender(xtarotPlugin, {"from": gov})
 
     # add strategy to vault and whale deposits 15,000 BOO
@@ -202,7 +202,7 @@ def test_claim_rewards(
     xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
@@ -225,7 +225,7 @@ def test_deposit(
     xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
@@ -248,7 +248,7 @@ def test_withdraw_all(
     xtarot_swapFirstStep,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
 
     # vault = Contract(kaePlugin.vault())
     # gov = accounts.at(vault.governance(), force=True)
@@ -272,10 +272,10 @@ def test_manual_sell(
     gov,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     
     # our kae whale transfers KAE to the plugin to simulate claimed emission tokens
-    xtarotWhale = accounts.at("0x0ED650C3185eF33b6F61aD2fA7521A3602DF566c", force=True)
+    xtarotWhale = accounts.at("0xa1696Fec3b2806a850373D91082AA6Ad4759db60", force=True)
     xtarot.transfer(xtarotPlugin, 10 * 1e18, {"from": xtarotWhale})
 
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
@@ -311,7 +311,7 @@ def test_set_auto_sell(
     gov,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
@@ -339,7 +339,7 @@ def test_set_max_sell(
     gov,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
@@ -363,7 +363,7 @@ def test_set_use_spirit_one(
     gov,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():
@@ -391,7 +391,7 @@ def test_set_use_spirit_two(
     gov,
 ):
     strategist = accounts[2]
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     random_wallet = Contract("0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce")
     
     with brownie.reverts():

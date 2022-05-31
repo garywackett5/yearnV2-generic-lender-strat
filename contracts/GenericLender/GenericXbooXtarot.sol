@@ -98,14 +98,12 @@ contract GenericXbooXtarot is GenericLenderBase {
     /* ========== STATE VARIABLES ========== */
 
     ChefLike public masterchef;
-    IXtarotRouter public xtarotRouter;
-    IERC20 public emissionToken;
     IERC20 public swapFirstStep;
 
     // swap stuff
+    IXtarotRouter internal constant xtarotRouter = IXtarotRouter(0x3E9F34309B2f046F4f43c0376EFE2fdC27a10251);
     address internal constant spookyFactory = 0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3;
     address internal constant spiritFactory = 0xEF45d134b73241eDa7703fa787148D9C9F4950b0;
-    address internal constant xtarotAddress = 0x74D1D2A851e339B8cB953716445Be7E8aBdf92F4;
 
     // tokens
     IERC20 internal constant wftm = IERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
@@ -134,26 +132,20 @@ contract GenericXbooXtarot is GenericLenderBase {
         uint256 _pid,
         string memory _name,
         address _masterchef,
-        address _xtarotRouter,
-        address _emissionToken,
         address _swapFirstStep,
         bool _autoSell
     ) public GenericLenderBase(_strategy, _name) {
-        _initializeStrat(_pid, _masterchef, _xtarotRouter, _emissionToken, _swapFirstStep, _autoSell);
+        _initializeStrat(_pid, _masterchef, _swapFirstStep, _autoSell);
     }
 
     // this is called by our original strategy, as well as any clones
     function _initializeStrat(
         uint256 _pid,
         address _masterchef,
-        address _xtarotRouter,
-        address _emissionToken,
         address _swapFirstStep,
         bool _autoSell
     ) internal {
         masterchef = ChefLike(_masterchef);
-        xtarotRouter = IXtarotRouter(_xtarotRouter);
-        emissionToken = IERC20(_emissionToken);
         swapFirstStep = IERC20(_swapFirstStep);
 
         (
@@ -169,7 +161,7 @@ contract GenericXbooXtarot is GenericLenderBase {
             
         ) = masterchef.poolInfo(_pid);
 
-        require(rewardsToken == _emissionToken, "wrong token");
+        require(rewardsToken == address(xtarot), "wrong token");
 
         autoSell = _autoSell;
 
@@ -268,7 +260,7 @@ contract GenericXbooXtarot is GenericLenderBase {
 
         // 1! sell our emission token for swap first step token
         address[] memory emissionTokenPath = new address[](2);
-        emissionTokenPath[0] = address(emissionToken);
+        emissionTokenPath[0] = address(xtarot);
         emissionTokenPath[1] = address(swapFirstStep);
         uint256 id = 0;
 
@@ -386,13 +378,13 @@ contract GenericXbooXtarot is GenericLenderBase {
 
     // withdraw an amount including any want balance
     function _withdraw(uint256 amount) internal returns (uint256) {
-        // claim our emissionToken rewards
+        // claim our xtarot rewards
         _claimRewards();
 
-        // if we have emissionToken to sell, then sell all of it
-         uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
+        // if we have xtarot to sell, then sell all of it
+         uint256 emissionTokenBalance = xtarot.balanceOf(address(this));
         if (emissionTokenBalance > 0 && autoSell) {
-            // sell our emissionToken
+            // sell our xtarot
             _sell(emissionTokenBalance);
         }
 
@@ -458,7 +450,7 @@ contract GenericXbooXtarot is GenericLenderBase {
         }
 
         // unstake xtarot for tarot
-        xtarotRouter.leave(xtarotAddress, _amount);
+        xtarotRouter.leave(address(xtarot), _amount);
         _amount = tarot.balanceOf(address(this));
 
         // we do all our sells in one go in a chain between pairs
@@ -581,13 +573,13 @@ contract GenericXbooXtarot is GenericLenderBase {
 
     function withdrawAll() external override management returns (bool) {
         uint256 invested = _nav();
-        // claim our emissionToken rewards
+        // claim our xtarot rewards
         _claimRewards();
 
-        // if we have emissionToken to sell, then sell all of it
-         uint256 emissionTokenBalance = emissionToken.balanceOf(address(this));
+        // if we have xtarot to sell, then sell all of it
+         uint256 emissionTokenBalance = xtarot.balanceOf(address(this));
         if (emissionTokenBalance > 0 && autoSell) {
-            // sell our emissionToken
+            // sell our xtarot
             _sell(emissionTokenBalance);
         }
         (uint256 stakedXboo, ) = masterchef.userInfo(pid, address(this));

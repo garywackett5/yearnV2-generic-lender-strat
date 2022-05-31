@@ -250,7 +250,7 @@ def live_strategy(
     # t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
     # bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
     # bftmPlugin = GenericXbooXtarot.at('0x545b2C68d246A6E103C1C184e2e663c726963157')
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     # sdPlugin = strategist.deploy(GenericXboo, strategy, sd_pid, "SdXboo", masterchef, sd, sd_swapFirstStep, True)
     # bftmPlugin = strategist.deploy(GenericXboo, strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
 
@@ -307,7 +307,7 @@ def strategy(
 
     # t1 = sdPlugin.cloneGenericXbooXtarot(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
     # bftmPlugin = GenericXbooXtarot.at(t1.events["Cloned"]["clone"])
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarotRouter, xtarot, xtarot_swapFirstStep, True)
+    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
 
     
     # strategy.addLender(lunaPlugin, {"from": gov})
