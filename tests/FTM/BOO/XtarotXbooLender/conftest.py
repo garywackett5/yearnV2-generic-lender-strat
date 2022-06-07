@@ -166,7 +166,7 @@ def token(boo):
 @pytest.fixture(scope="module")
 def whale(accounts, token, amount, strategist):
     # Update this with a large holder of your want token (the largest EOA holder of LP)
-    whale = accounts.at("0x5804F6C40f44cF7593F73cf3aa16F7037213A623", force=True)
+    whale = accounts.at("0xf778F4D7a14A8CB73d5261f9C61970ef4E7D7842", force=True)
     token.transfer(strategist, amount, {'from': whale})
     yield whale
 
@@ -213,6 +213,14 @@ def live_vault(gov, accounts, Strategy, rewards, guardian, boo, pm):
     yield vault
 
 @pytest.fixture(scope="module")
+def live_vault_new(gov, accounts, Strategy, rewards, guardian, boo, pm):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = Vault.at('0x0fBbf9848D969776a5Eb842EdAfAf29ef4467698')
+    gov = accounts.at(vault.governance(), force=True)
+    
+    yield vault
+
+@pytest.fixture(scope="module")
 def live_strategy(
     live_vault,
     Strategy,
@@ -244,13 +252,14 @@ def live_strategy(
 
     # kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
     # lunaPlugin =  GenericXbooXtarot.at('0x7a1dE1a9ABF7Ff94E09d407E12fa70511443aFDF')
+    xtarotPlugin =  GenericXbooXtarot.at('0x2516c353fa22c80CEb69075E70696a7402230102')
     # mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
     # sdPlugin = GenericXbooXtarot.at('0x351E0449C24fA79CBd2A54B9fce52845A5c47276')
 
     # t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
     # bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
     # bftmPlugin = GenericXbooXtarot.at('0x545b2C68d246A6E103C1C184e2e663c726963157')
-    xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
+    # xtarotPlugin = strategist.deploy(GenericXbooXtarot, strategy, xtarot_pid, "XtarotXboo", masterchef, xtarot_swapFirstStep, True)
     # sdPlugin = strategist.deploy(GenericXboo, strategy, sd_pid, "SdXboo", masterchef, sd, sd_swapFirstStep, True)
     # bftmPlugin = strategist.deploy(GenericXboo, strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
 
@@ -262,7 +271,62 @@ def live_strategy(
     yield strategy
     
 
+@pytest.fixture(scope="module")
+def live_strategy_new(
+    live_vault_new,
+    Strategy,
+    GenericXboo,
+    kae_pid,
+    kae,
+    kae_swapFirstStep,
+    mst_pid,
+    mst,
+    mst_swapFirstStep,
+    bftm_pid,
+    bftm,
+    bftm_swapFirstStep,
+    masterchef,
+    accounts
+):
+    strategy = Strategy.at('0x4CE40A36A018457F8E0AA7C4a12Cc7ebf228B20F')
+    
+    strategist = accounts.at(strategy.strategist(), force=True)
+    gov = accounts.at(live_vault_new.governance(), force=True)
 
+
+    # kaePlugin = strategist.deploy(GenericXboo, strategy, kae_pid, "KaeXboo", masterchef, kae, kae_swapFirstStep, True)
+    #lunaPlugin =  GenericXboo.at('0x7a1dE1a9ABF7Ff94E09d407E12fa70511443aFDF')
+    # mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
+    #sdPlugin = GenericXboo.at('0x351E0449C24fA79CBd2A54B9fce52845A5c47276')
+
+    # t1 = mstPlugin.cloneGenericXboo(strategy, bftm_pid, "BftmXboo", masterchef, bftm, bftm_swapFirstStep, True)
+    # bftmPlugin = GenericXboo.at(t1.events["Cloned"]["clone"])
+    #bftmPlugin = GenericXboo.at('0x545b2C68d246A6E103C1C184e2e663c726963157')
+    #oldHec = '0xe2c2C5Bf73FdcD226E1da27F51745F32c475881f'
+
+    hecboo =  GenericXboo.at('0xcdFFfe0e6807E78fEa7DB12aC7876969197a9Bcf')
+    # mstPlugin = strategist.deploy(GenericXboo, strategy, mst_pid, "MstXboo", masterchef, mst, mst_swapFirstStep, True)
+    galcboo = GenericXboo.at('0x88D9e3671983FCEB6FCb02e3eCe963f9C8fE6195')
+    xtarotboo = GenericXboo.at('0x2516c353fa22c80CEb69075E70696a7402230102')
+
+    #strategy.safeRemoveLender(bftmPlugin, {"from": gov})
+    #strategy.safeRemoveLender(lunaPlugin, {"from": gov})
+    #strategy.safeRemoveLender(oldHec, {"from": gov})
+
+    #sdPlugin.emergencyManualWithdraw({"from": gov})
+    #strategy.forceRemoveLender(sdPlugin, {"from": gov})
+
+    hecboo.emergencyManualWithdraw({"from": gov})
+    strategy.forceRemoveLender(hecboo, {"from": gov})
+
+    galcboo.emergencyManualWithdraw({"from": gov})
+    strategy.forceRemoveLender(galcboo, {"from": gov})
+    
+    #strategy.addLender(hecboo, {"from": gov})
+    #strategy.addLender(galcboo, {"from": gov})
+    strategy.addLender(xtarotboo, {"from": gov})
+    assert strategy.numLenders() == 1
+    yield strategy
 
 @pytest.fixture(scope="module")
 def vault(gov, rewards, guardian, boo, pm):
