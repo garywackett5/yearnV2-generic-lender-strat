@@ -64,29 +64,36 @@ interface IFactory {
         );
 }
 
+// updated for acelab (masterchef) v2, plus updated when used within code
 interface ChefLike {
-    function deposit(uint256 _pid, uint256 _amount) external;
+    function deposit(uint _pid, uint _amount) external;
 
-    function withdraw(uint256 _pid, uint256 _amount) external; // use amount = 0 for harvesting rewards
+    function withdraw(uint _pid, uint _amount) external; // use amount = 0 for harvesting rewards
 
-    function emergencyWithdraw(uint256 _pid) external;
+    function emergencyWithdraw(uint _pid) external;
 
-    function userInfo(uint256 _pid, address user) external view returns (uint256 amount, uint256 rewardDebt);
+    function userInfo(uint256 _pid, address user) external view returns (uint256 amount, uint256 rewardDebt, uint256 catDebt, uint256 mp);
 
     function poolInfo(uint256 _pid)
         external
         view
         returns (
-            address RewardToken,
-            uint256 RewardPerSecond,
-            uint256 TokenPrecision,
-            uint256 xBooStakedAmount,
-            uint256 lastRewardTime,
-            uint256 accRewardPerShare,
-            uint256 endTime,
-            uint256 startTime,
-            uint256 userLimitEndTime,
-            address protocolOwnerAddress
+            address RewardToken,          //20B Address of reward token contract.
+            uint32 userLimitEndTime,      //4B
+            uint8 TokenPrecision,         //1B The precision factor used for calculations, equals the tokens decimals
+                                          //7B [free space available here]
+
+            uint xBooStakedAmount,        //32B # of xboo allocated to this pool
+            uint mpStakedAmount,          //32B # of mp allocated to this pool
+
+            uint RewardPerSecond,         //32B reward token per second for this pool in wei
+            uint accRewardPerShare,       //32B Accumulated reward per share, times the pools token precision. See below.
+            uint accRewardPerShareMagicat,//32B Accumulated reward per share, times the pools token precision. See below.
+
+            address protocolOwnerAddress, //20B this address is the owner of the protocol corresponding to the reward token, used for emergency withdraw to them only
+            uint32 lastRewardTime,        //4B Last block time that reward distribution occurs.
+            uint32 endTime,               //4B end time of pool
+            uint32 startTime             //4B start time of pool
         );
 }
 
@@ -158,6 +165,8 @@ contract GenericXbooXtarot is GenericLenderBase {
             ,
             ,
             ,
+            ,
+            ,
             
         ) = masterchef.poolInfo(_pid);
 
@@ -192,7 +201,7 @@ contract GenericXbooXtarot is GenericLenderBase {
 
     // balance of xboo in masterchef (in boo)
     function balanceOfStaked() public view returns (uint256) {
-        (uint256 stakedInMasterchef, ) = masterchef.userInfo(pid, address(this));
+        (uint256 stakedInMasterchef, , , ) = masterchef.userInfo(pid, address(this));
         stakedInMasterchef = xboo.xBOOForBOO(stakedInMasterchef);
         return stakedInMasterchef;
     }
@@ -224,15 +233,17 @@ contract GenericXbooXtarot is GenericLenderBase {
     function _aprAfterDeposit(uint256 amount) internal view returns (uint256) {
         (
             ,
-            uint256 rewardsEachSecond,
+            ,
             ,
             uint256 stakedXboo,
             ,
+            uint256 rewardsEachSecond,
+            ,
+            ,
+            ,
             ,
             uint256 poolEnds,
-            uint256 poolStarts,
-            ,
-            
+            uint256 poolStarts
         ) = masterchef.poolInfo(pid);
         if (block.timestamp < poolStarts || block.timestamp > poolEnds) {
             return 0;
@@ -404,7 +415,7 @@ contract GenericXbooXtarot is GenericLenderBase {
                 // new amount of xboo needed after subtracting any xboo that is already loose in the contract
                 uint256 newAmountToFreeInXboo = amountToFreeInXboo.sub(balanceXboo);
 
-                (uint256 deposited, ) =
+                (uint256 deposited, , , ) =
                     ChefLike(masterchef).userInfo(pid, address(this));
                 // if xboo deposited in masterchef is less than what we want, deposited becomes what we want (all)
                 if (deposited < newAmountToFreeInXboo) {
@@ -582,7 +593,7 @@ contract GenericXbooXtarot is GenericLenderBase {
             // sell our xtarot
             _sell(emissionTokenBalance);
         }
-        (uint256 stakedXboo, ) = masterchef.userInfo(pid, address(this));
+        (uint256 stakedXboo, , , ) = masterchef.userInfo(pid, address(this));
         if (stakedXboo > 0) {
             ChefLike(masterchef).withdraw(pid, stakedXboo);
         }
