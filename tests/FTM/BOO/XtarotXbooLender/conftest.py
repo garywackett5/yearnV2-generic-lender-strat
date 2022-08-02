@@ -21,7 +21,7 @@ def tenderly_fork(web3):
 # this is the pool ID that we are staking for. 21, hec
 @pytest.fixture(scope="module")
 def pid():
-    pid = 37
+    pid = 4
     yield pid
 
 
@@ -140,7 +140,7 @@ def xtarot():
 
 @pytest.fixture(scope="module")
 def xtarot_pid():
-    yield 37
+    yield 4
     
 @pytest.fixture(scope="module")
 def xtarot_swapFirstStep(wftm):
@@ -148,7 +148,7 @@ def xtarot_swapFirstStep(wftm):
 
 @pytest.fixture(scope="module")
 def masterchef():
-    yield Contract("0x2352b745561e7e6FCD03c093cE7220e3e126ace0")
+    yield Contract("0x399D73bB7c83a011cD85DF2a3CdF997ED3B3439f")
 
 @pytest.fixture(scope="module")
 def xtarotRouter():
