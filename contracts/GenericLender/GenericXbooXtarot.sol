@@ -202,8 +202,7 @@ contract GenericXbooXtarot is GenericLenderBase {
     // balance of xboo in masterchef (in boo)
     function balanceOfStaked() public view returns (uint256) {
         (uint256 stakedInMasterchef, , , ) = masterchef.userInfo(pid, address(this));
-        stakedInMasterchef = xboo.xBOOForBOO(stakedInMasterchef);
-        return stakedInMasterchef;
+        return xboo.xBOOForBOO(stakedInMasterchef);
     }
 
     // same as estimatedTotalAssets
@@ -584,18 +583,16 @@ contract GenericXbooXtarot is GenericLenderBase {
 
     function withdrawAll() external override management returns (bool) {
         uint256 invested = _nav();
-        // claim our xtarot rewards
-        _claimRewards();
+
+        // withdraw all stakedXboo, which also claims our xtarot rewards
+        (uint256 stakedXboo, , , ) = masterchef.userInfo(pid, address(this));
+        masterchef.withdraw(pid, stakedXboo);
 
         // if we have xtarot to sell, then sell all of it
-         uint256 emissionTokenBalance = xtarot.balanceOf(address(this));
+        uint256 emissionTokenBalance = xtarot.balanceOf(address(this));
         if (emissionTokenBalance > 0 && autoSell) {
             // sell our xtarot
             _sell(emissionTokenBalance);
-        }
-        (uint256 stakedXboo, , , ) = masterchef.userInfo(pid, address(this));
-        if (stakedXboo > 0) {
-            ChefLike(masterchef).withdraw(pid, stakedXboo);
         }
 
         uint256 balanceXboo = balanceOfXboo();
